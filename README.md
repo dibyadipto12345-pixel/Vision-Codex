@@ -2,11 +2,6 @@
 
 Vision Codex is an AI-powered visual code review app.
 
-## Project layout
-
-- `Frontend/` contains the static GitHub Pages site.
-- `Backend/` contains the FastAPI service that calls Gemini.
-
 ## Local development
 
 1. Copy `.env.example` to `.env` and set `GEMINI_API_KEY`.
@@ -25,3 +20,5 @@ The FastAPI backend cannot run on GitHub Pages; deploy it separately and set
 `window.VISION_CODEX_API_BASE` before loading the frontend, or update the frontend
 configuration to the deployed API URL. Keep `GEMINI_API_KEY` only in the backend
 hosting provider's environment variables, never in frontend files or Git history.
+
+Website: https://dibyadipto12345-pixel.github.io/Vision-Codex/
