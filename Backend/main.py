@@ -16,8 +16,14 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "*").split(",")
+MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+raw_origins = os.environ.get("ALLOWED_ORIGINS", "*")
+if raw_origins.strip() == "*":
+    ALLOWED_ORIGINS = ["*"]
+    ALLOW_CREDENTIALS = False
+else:
+    ALLOWED_ORIGINS = [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
+    ALLOW_CREDENTIALS = True
 
 AnalysisMode = Literal["security", "architecture", "performance", "wireframe"]
 
@@ -25,7 +31,7 @@ app = FastAPI(title="Vision Codex API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=ALLOW_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -107,6 +113,17 @@ def parse_json_response(text: str) -> dict:
 
     logger.error("All JSON parse strategies failed. Raw response: %s", text[:800])
     raise ValueError("Could not extract JSON from model response")
+
+
+@app.get("/")
+def root():
+    return {
+        "service": "Vision Codex API",
+        "status": "running",
+        "model": MODEL_NAME,
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 
 @app.get("/health")

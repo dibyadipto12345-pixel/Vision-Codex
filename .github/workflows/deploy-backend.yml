@@ -1,0 +1,59 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'vision-codex-app' }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  SERVICE_NAME: vision-codex-backend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity or Service Account Key)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          # If using Workload Identity Federation:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          # Fallback if using direct Service Account Key JSON:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run from Source
+        id: deploy
+        run: |
+          gcloud run deploy "$SERVICE_NAME" \
+            --source ./Backend \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},ALLOWED_ORIGINS=https://dibyadipto12345-pixel.github.io,GEMINI_MODEL=gemini-1.5-flash" \
+            --format="value(status.url)" > service_url.txt
+
+          SERVICE_URL=$(cat service_url.txt)
+          echo "DEPLOYED_SERVICE_URL=$SERVICE_URL" >> $GITHUB_ENV
+          echo "Deployed successfully to: $SERVICE_URL"
+
+      - name: Verify Backend Health
+        run: |
+          echo "Testing health check at $DEPLOYED_SERVICE_URL/health"
+          curl -f "$DEPLOYED_SERVICE_URL/health" || echo "Health check finished."
