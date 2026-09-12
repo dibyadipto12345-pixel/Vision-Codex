@@ -21,4 +21,4 @@ The FastAPI backend cannot run on GitHub Pages; deploy it separately and set
 configuration to the deployed API URL. Keep `GEMINI_API_KEY` only in the backend
 hosting provider's environment variables, never in frontend files or Git history.
 
-Website: https://dibyadipto12345-pixel.github.io/Vision-Codex/
+Website: 
