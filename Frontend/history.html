@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Review History — VisionCodex</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070d18;--surface:#0d1525;--surface2:#121d30;
+  --border:#1a2640;--border2:#243454;--text:#c8d8f0;
+  --muted:#4d6080;--dim:#2a3d5a;--accent:#00c8ff;
+  --accent-glow:rgba(0,200,255,.1);
+  --critical:#ff4d6a;--high:#ff8c42;--medium:#f7c94b;
+  --low:#4da6ff;--perf:#b06aff;--suggestion:#2ecc8f;
+  --mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;
+}
+html{font-family:var(--sans);background:var(--bg);color:var(--text)}
+body{min-height:100vh;display:flex;flex-direction:column}
+
+nav{display:flex;align-items:center;gap:12px;padding:0 28px;height:54px;border-bottom:1px solid var(--border);background:rgba(7,13,24,.92);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-weight:700;font-size:16px}
+.logo-eye{width:28px;height:28px;background:linear-gradient(135deg,#00c8ff,#0066ff);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-link{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .15s}
+.nav-link:hover{color:var(--text);background:var(--surface2)}
+.nav-link.active{color:var(--accent)}
+
+.page{max-width:900px;margin:0 auto;padding:36px 24px 80px;width:100%}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.page-title{font-size:22px;font-weight:700}
+.page-title span{color:var(--accent)}
+.new-btn{background:var(--accent);color:#040d14;font-weight:600;font-size:13px;padding:9px 18px;border-radius:8px;text-decoration:none;display:flex;align-items:center;gap:6px}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+.filter-btn:hover{border-color:var(--border2);color:var(--text)}
+.filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.clear-btn{margin-left:auto;padding:6px 14px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+.clear-btn:hover{border-color:var(--critical);color:var(--critical)}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:600px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-val{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.stat-label{font-size:11px;color:var(--muted);margin-top:3px}
+
+.history-list{display:flex;flex-direction:column;gap:10px}
+.history-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:11px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:border-color .15s;
+  text-decoration:none;color:inherit;
+}
+.history-item:hover{border-color:var(--border2)}
+.item-icon{width:42px;height:42px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.item-body{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-summary{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.item-badges{display:flex;gap:5px}
+.mini-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px}
+.mini-badge.CRITICAL{background:rgba(255,77,106,.15);color:var(--critical)}
+.mini-badge.HIGH{background:rgba(255,140,66,.15);color:var(--high)}
+.mini-badge.react{background:rgba(0,200,255,.12);color:var(--accent)}
+.item-time{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.item-mode{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+
+.empty{text-align:center;padding:80px 32px;color:var(--dim)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty h3{font-size:15px;font-weight:500;color:var(--muted);margin-bottom:8px}
+.empty p{font-size:13px;line-height:1.6;max-width:320px;margin:0 auto 20px}
+.empty a{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#040d14;font-weight:600;font-size:13px;padding:9px 18px;border-radius:8px;text-decoration:none}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(4,10,22,.85);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:640px;max-height:80vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.modal-title{font-size:15px;font-weight:600}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:5px;line-height:1}
+.modal-close:hover{color:var(--text);background:var(--surface2)}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:10px}
+.modal-summary{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:6px}
+.modal-finding{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--border);border-radius:8px;padding:12px 14px}
+.modal-finding.CRITICAL{border-left-color:var(--critical)}.modal-finding.HIGH{border-left-color:var(--high)}.modal-finding.MEDIUM{border-left-color:var(--medium)}.modal-finding.LOW{border-left-color:var(--low)}.modal-finding.PERF{border-left-color:var(--perf)}.modal-finding.SUGGESTION{border-left-color:var(--suggestion)}
+.mf-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mf-sev{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.mf-sev.CRITICAL{background:rgba(255,77,106,.15);color:var(--critical)}.mf-sev.HIGH{background:rgba(255,140,66,.15);color:var(--high)}.mf-sev.MEDIUM{background:rgba(247,201,75,.15);color:var(--medium)}.mf-sev.LOW{background:rgba(77,166,255,.15);color:var(--low)}.mf-sev.PERF{background:rgba(176,106,255,.15);color:var(--perf)}.mf-sev.SUGGESTION{background:rgba(46,204,143,.15);color:var(--suggestion)}
+.mf-title{font-size:12px;font-weight:600}
+.mf-exp{font-size:11px;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="./index.html"><span class="logo-eye">👁</span>Vision<span>Codex</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="./analyze.html">Analyze</a>
+    <a class="nav-link active" href="./history.html">History</a>
+    <a class="nav-link" href="./index.html">Home</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Review <span>History</span></h1>
+    <a class="new-btn" href="./analyze.html">+ New Analysis</a>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Reviews</div></div>
+    <div class="stat-card"><div class="stat-val" id="statCritical" style="color:var(--critical)">0</div><div class="stat-label">Critical Issues</div></div>
+    <div class="stat-card"><div class="stat-val" id="statHigh" style="color:var(--high)">0</div><div class="stat-label">High Issues</div></div>
+    <div class="stat-card"><div class="stat-val" id="statModes">—</div><div class="stat-label">Most Used Mode</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="security">🔐 Security</button>
+    <button class="filter-btn" data-filter="architecture">🏗️ Architecture</button>
+    <button class="filter-btn" data-filter="performance">⚡ Performance</button>
+    <button class="filter-btn" data-filter="wireframe">🎨 Wireframe</button>
+    <button class="clear-btn" id="clearBtn">🗑 Clear history</button>
+  </div>
+
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Review Details</span>
+      <button class="modal-close" id="modalClose">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+  let allHistory = [], activeFilter = "all";
+
+  function loadHistory() {
+    try { allHistory = JSON.parse(localStorage.getItem("vc_history") || "[]"); }
+    catch(e) { allHistory = []; }
+    updateStats();
+    renderList();
+  }
+
+  function updateStats() {
+    const total = allHistory.length;
+    const critical = allHistory.reduce((s,h) => s + (h.critical||0), 0);
+    const high = allHistory.reduce((s,h) => s + (h.high||0), 0);
+    const modeCounts = {};
+    allHistory.forEach(h => { modeCounts[h.mode] = (modeCounts[h.mode]||0)+1; });
+    const topMode = Object.entries(modeCounts).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById("statTotal").textContent = total;
+    document.getElementById("statCritical").textContent = critical;
+    document.getElementById("statHigh").textContent = high;
+    document.getElementById("statModes").textContent = topMode ? topMode[0] : "—";
+  }
+
+  function renderList() {
+    const list = document.getElementById("historyList");
+    const filtered = activeFilter === "all" ? allHistory : allHistory.filter(h => h.mode === activeFilter);
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">${allHistory.length ? "🔍" : "📊"}</div><h3>${allHistory.length ? "No results for this filter" : "No reviews yet"}</h3><p>${allHistory.length ? "Try a different filter above." : "Run your first analysis to see results here."}</p><a href="./analyze.html">▶ Start Analyzing</a></div>`;
+      return;
+    }
+
+    list.innerHTML = "";
+    filtered.forEach(item => {
+      const modeIcons = {security:"🔐",architecture:"🏗️",performance:"⚡",wireframe:"🎨"};
+      const timeAgo = getTimeAgo(item.timestamp);
+      const div = document.createElement("div");
+      div.className = "history-item";
+      div.innerHTML = `
+        <div class="item-icon">${modeIcons[item.mode]||"📄"}</div>
+        <div class="item-body">
+          <div class="item-name">${esc(item.filename)}</div>
+          <div class="item-summary">${esc(item.summary)}</div>
+        </div>
+        <div class="item-right">
+          <div class="item-badges">
+            ${item.critical ? `<span class="mini-badge CRITICAL">CRIT ×${item.critical}</span>` : ""}
+            ${item.high ? `<span class="mini-badge HIGH">HIGH ×${item.high}</span>` : ""}
+            ${item.mode==="wireframe" ? `<span class="mini-badge react">React gen</span>` : ""}
+            ${!item.critical && !item.high && item.mode!=="wireframe" ? `<span style="font-size:11px;color:var(--suggestion)">✓ Clean</span>` : ""}
+          </div>
+          <div class="item-mode">${item.mode}</div>
+          <div class="item-time">${timeAgo}</div>
+        </div>
+      `;
+      div.addEventListener("click", () => openModal(item));
+      list.appendChild(div);
+    });
+  }
+
+  function openModal(item) {
+    document.getElementById("modalTitle").textContent = item.filename;
+    const body = document.getElementById("modalBody");
+    body.innerHTML = `<p class="modal-summary">// ${esc(item.summary)}</p>`;
+    if (item.findings_data && item.findings_data.length) {
+      item.findings_data.forEach(f => {
+        const d = document.createElement("div");
+        d.className = "modal-finding " + f.severity;
+        d.innerHTML = `<div class="mf-top"><span class="mf-sev ${f.severity}">${f.severity}</span><span class="mf-title">${esc(f.title)}</span></div><p class="mf-exp">${esc(f.explanation)}</p>`;
+        body.appendChild(d);
+      });
+    } else {
+      body.innerHTML += `<p style="color:var(--suggestion);font-family:var(--mono);font-size:12px">✓ No issues found</p>`;
+    }
+    document.getElementById("modalOverlay").classList.add("open");
+  }
+
+  document.getElementById("modalClose").addEventListener("click", () => document.getElementById("modalOverlay").classList.remove("open"));
+  document.getElementById("modalOverlay").addEventListener("click", e => { if(e.target===e.currentTarget) document.getElementById("modalOverlay").classList.remove("open"); });
+
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      activeFilter = btn.dataset.filter;
+      renderList();
+    });
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    if (confirm("Clear all review history? This cannot be undone.")) {
+      localStorage.removeItem("vc_history");
+      loadHistory();
+    }
+  });
+
+  function getTimeAgo(iso) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff/60000), h = Math.floor(diff/3600000), d = Math.floor(diff/86400000);
+    if (d > 0) return d + "d ago";
+    if (h > 0) return h + "h ago";
+    if (m > 0) return m + "m ago";
+    return "just now";
+  }
+
+  function esc(s) { const d=document.createElement("div");d.textContent=s??"";return d.innerHTML; }
+
+  loadHistory();
+</script>
+</body>
+</html>

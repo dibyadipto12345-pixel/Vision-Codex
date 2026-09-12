@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Analyze — VisionCodex</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070d18;--surface:#0d1525;--surface2:#121d30;
+  --border:#1a2640;--border2:#243454;--text:#c8d8f0;
+  --muted:#4d6080;--dim:#2a3d5a;--accent:#00c8ff;
+  --accent-glow:rgba(0,200,255,.1);
+  --critical:#ff4d6a;--high:#ff8c42;--medium:#f7c94b;
+  --low:#4da6ff;--perf:#b06aff;--suggestion:#2ecc8f;
+  --mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;
+}
+html{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15px}
+body{min-height:100vh;display:flex;flex-direction:column}
+*,*::before,*::after{box-sizing:border-box}
+
+nav{display:flex;align-items:center;gap:12px;padding:0 28px;height:54px;border-bottom:1px solid var(--border);background:rgba(7,13,24,.92);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text);font-weight:700;font-size:16px}
+.logo-eye{width:28px;height:28px;background:linear-gradient(135deg,#00c8ff,#0066ff);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:4px;margin-left:auto}
+.nav-link{color:var(--muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:6px;transition:all .15s}
+.nav-link:hover{color:var(--text);background:var(--surface2)}
+.nav-link.active{color:var(--accent)}
+
+main{flex:1;display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 54px)}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+
+.left-panel{border-right:1px solid var(--border);padding:24px;display:flex;flex-direction:column;gap:18px;background:var(--surface)}
+.section-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.8px;margin-bottom:6px;display:block}
+
+.dropzone{position:relative;border:1.5px dashed var(--border2);border-radius:12px;background:var(--bg);cursor:pointer;transition:all .2s;overflow:hidden;min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.dropzone:hover,.dropzone.drag-over{border-color:var(--accent);background:var(--accent-glow)}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-content{text-align:center;padding:28px 20px;pointer-events:none}
+.dz-icon{font-size:28px;margin-bottom:8px}
+.dz-title{font-size:13px;font-weight:500;margin-bottom:4px}
+.dz-sub{font-size:11px;color:var(--muted);line-height:1.5}
+#preview-img{width:100%;max-height:210px;object-fit:cover;display:none}
+.filename{font-family:var(--mono);font-size:11px;color:var(--accent);padding:8px 12px;background:var(--surface2);border-top:1px solid var(--border);display:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-btn{padding:10px 6px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.mode-btn:hover{border-color:var(--border2);color:var(--text)}
+.mode-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+
+.analyze-btn{width:100%;padding:13px;background:var(--accent);color:#040d14;border:none;border-radius:9px;font-size:14px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:opacity .15s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.analyze-btn:hover:not(:disabled){opacity:.9}
+.analyze-btn:active:not(:disabled){transform:scale(.99)}
+.analyze-btn:disabled{opacity:.35;cursor:not-allowed}
+
+.status-bar{font-family:var(--mono);font-size:11px;color:var(--muted);padding:9px 13px;background:var(--bg);border:1px solid var(--border);border-radius:7px;min-height:36px;display:flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.ready{background:var(--suggestion)}
+.dot.working{background:var(--accent);animation:pulse 1s infinite}
+.dot.error{background:var(--critical)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.error-box{background:rgba(255,77,106,.07);border:1px solid rgba(255,77,106,.25);border-radius:7px;padding:11px 13px;font-size:12px;color:var(--critical);display:none}
+.history-link{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);text-decoration:none;padding:8px 12px;border:1px solid var(--border);border-radius:7px;transition:all .15s;width:fit-content}
+.history-link:hover{border-color:var(--border2);color:var(--text)}
+
+.right-panel{padding:28px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;border:1px dashed var(--border);border-radius:14px;padding:60px 32px;color:var(--dim)}
+.placeholder .ph-icon{font-size:40px;margin-bottom:4px}
+.placeholder h3{font-size:15px;font-weight:500;color:var(--muted)}
+.placeholder p{font-size:13px;max-width:320px;line-height:1.6}
+
+.results-meta{display:none;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.results-summary{font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.5}
+.badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.count-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.3px}
+.count-badge.CRITICAL{background:rgba(255,77,106,.15);color:var(--critical)}
+.count-badge.HIGH{background:rgba(255,140,66,.15);color:var(--high)}
+.count-badge.MEDIUM{background:rgba(247,201,75,.15);color:var(--medium)}
+.count-badge.LOW{background:rgba(77,166,255,.15);color:var(--low)}
+.count-badge.PERF{background:rgba(176,106,255,.15);color:var(--perf)}
+.count-badge.SUGGESTION{background:rgba(46,204,143,.15);color:var(--suggestion)}
+
+.split-view{display:none;gap:16px;flex:1}
+.split-left{width:220px;flex-shrink:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.split-left img{width:100%;display:block;object-fit:cover;max-height:200px}
+.split-left-label{font-family:var(--mono);font-size:10px;color:var(--muted);padding:10px 12px;border-top:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.findings-list{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+
+.finding{background:var(--surface);border:1px solid var(--border);border-left:3px solid transparent;border-radius:10px;padding:14px 16px;animation:fadeUp .2s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.finding.CRITICAL{border-left-color:var(--critical)}.finding.HIGH{border-left-color:var(--high)}.finding.MEDIUM{border-left-color:var(--medium)}.finding.LOW{border-left-color:var(--low)}.finding.PERF{border-left-color:var(--perf)}.finding.SUGGESTION{border-left-color:var(--suggestion)}
+.finding-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.sev-badge{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.4px;flex-shrink:0}
+.sev-badge.CRITICAL{background:rgba(255,77,106,.15);color:var(--critical)}.sev-badge.HIGH{background:rgba(255,140,66,.15);color:var(--high)}.sev-badge.MEDIUM{background:rgba(247,201,75,.15);color:var(--medium)}.sev-badge.LOW{background:rgba(77,166,255,.15);color:var(--low)}.sev-badge.PERF{background:rgba(176,106,255,.15);color:var(--perf)}.sev-badge.SUGGESTION{background:rgba(46,204,143,.15);color:var(--suggestion)}
+.finding-title{font-size:13px;font-weight:600;color:var(--text)}
+.finding-exp{font-size:12px;color:var(--text);line-height:1.6;opacity:.85}
+.finding-rec{margin-top:8px;font-size:11px;color:var(--muted);font-family:var(--mono);line-height:1.6;padding:7px 10px;background:var(--surface2);border-radius:6px}
+.finding-rec::before{content:"→ ";color:var(--accent)}
+
+.code-section{display:none;flex-direction:column}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.copy-btn{background:transparent;border:1px solid var(--border2);color:var(--muted);padding:4px 10px;border-radius:5px;font-size:10px;font-family:var(--mono);cursor:pointer;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+pre.code-block{background:var(--surface);border:1px solid var(--border);border-radius:0 0 10px 10px;padding:16px;overflow-x:auto;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-word;max-height:480px;overflow-y:auto}
+
+.spinner{width:14px;height:14px;border:2px solid rgba(4,13,20,.3);border-top-color:#040d14;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<nav>
+  <a class="logo" href="./index.html"><span class="logo-eye">👁</span>Vision<span>Codex</span></a>
+  <div class="nav-links">
+    <a class="nav-link active" href="./analyze.html">Analyze</a>
+    <a class="nav-link" href="./history.html">History</a>
+    <a class="nav-link" href="./index.html">Home</a>
+  </div>
+</nav>
+
+<main>
+  <div class="left-panel">
+    <div>
+      <span class="section-label">01 — ARTIFACT</span>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp"/>
+        <div class="dz-content" id="dzContent">
+          <div class="dz-icon">📁</div>
+          <div class="dz-title">Drop your visual artifact here</div>
+          <div class="dz-sub">Code screenshot · Architecture diagram · Wireframe<br>PNG · JPG · WEBP — max 8MB</div>
+        </div>
+        <img id="preview-img" alt="preview"/>
+      </div>
+      <div class="filename" id="filename"></div>
+    </div>
+    <div>
+      <span class="section-label">02 — ANALYSIS MODE</span>
+      <div class="modes">
+        <button class="mode-btn active" data-mode="security">🔐 Security</button>
+        <button class="mode-btn" data-mode="architecture">🏗️ Architecture</button>
+        <button class="mode-btn" data-mode="performance">⚡ Performance</button>
+        <button class="mode-btn" data-mode="wireframe">🎨 Wireframe→React</button>
+      </div>
+    </div>
+    <div>
+      <span class="section-label">03 — ANALYZE</span>
+      <button class="analyze-btn" id="analyzeBtn" disabled>▶ Analyze with Gemini Vision</button>
+    </div>
+    <div class="status-bar"><span class="dot" id="dot"></span><span id="statusText">Upload an image to begin</span></div>
+    <div class="error-box" id="errorBox"></div>
+    <a class="history-link" href="./history.html">📊 View Review History →</a>
+  </div>
+
+  <div class="right-panel">
+    <div class="results-meta" id="resultsMeta">
+      <div class="results-summary" id="summaryText"></div>
+      <div class="badge-row" id="badgeRow"></div>
+    </div>
+    <div class="split-view" id="splitView">
+      <div class="split-left">
+        <img id="splitImg" alt="artifact"/>
+        <div class="split-left-label" id="splitLabel"></div>
+      </div>
+      <div class="findings-list" id="findingsList"></div>
+    </div>
+    <div class="code-section" id="codeSection">
+      <div class="code-header">
+        <span>Generated React Component</span>
+        <button class="copy-btn" id="copyBtn">Copy code</button>
+      </div>
+      <pre class="code-block" id="codeBlock"></pre>
+    </div>
+    <div class="placeholder" id="placeholder">
+      <div class="ph-icon">👁</div>
+      <h3>No analysis yet</h3>
+      <p>Upload a code screenshot, architecture diagram, or wireframe — then pick a mode and click Analyze.</p>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API_BASE = window.VISION_CODEX_API || "http://localhost:8080";
+  let file=null,mode="security",loading=false;
+  const $=id=>document.getElementById(id);
+  const dropzone=$("dropzone"),fileInput=$("fileInput"),dzContent=$("dzContent"),
+    previewImg=$("preview-img"),filenameEl=$("filename"),analyzeBtn=$("analyzeBtn"),
+    dot=$("dot"),statusText=$("statusText"),errorBox=$("errorBox"),
+    resultsMeta=$("resultsMeta"),summaryText=$("summaryText"),badgeRow=$("badgeRow"),
+    splitView=$("splitView"),splitImg=$("splitImg"),splitLabel=$("splitLabel"),
+    findingsList=$("findingsList"),codeSection=$("codeSection"),
+    codeBlock=$("codeBlock"),copyBtn=$("copyBtn"),placeholder=$("placeholder");
+
+  dropzone.addEventListener("dragover",e=>{e.preventDefault();dropzone.classList.add("drag-over")});
+  dropzone.addEventListener("dragleave",()=>dropzone.classList.remove("drag-over"));
+  dropzone.addEventListener("drop",e=>{e.preventDefault();dropzone.classList.remove("drag-over");if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+  fileInput.addEventListener("change",e=>{if(e.target.files[0])loadFile(e.target.files[0])});
+
+  function loadFile(f){
+    file=f;const url=URL.createObjectURL(f);
+    previewImg.src=url;previewImg.style.display="block";
+    dzContent.style.display="none";
+    filenameEl.textContent=f.name;filenameEl.style.display="block";
+    splitImg.src=url;splitLabel.textContent=f.name;
+    analyzeBtn.disabled=false;
+    setStatus("ready","Ready — "+f.name);clearError();
+  }
+
+  document.querySelectorAll(".mode-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");mode=btn.dataset.mode;
+    });
+  });
+
+  analyzeBtn.addEventListener("click",async()=>{
+    if(!file||loading)return;
+    loading=true;clearError();clearResults();
+    analyzeBtn.disabled=true;
+    analyzeBtn.innerHTML='<span class="spinner"></span> Analyzing…';
+    setStatus("working","Sending to Gemini Vision — mode: "+mode);
+    const fd=new FormData();fd.append("file",file);fd.append("mode",mode);
+    try{
+      const res=await fetch(API_BASE+"/analyze",{method:"POST",body:fd});
+      if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.detail||"Server error "+res.status)}
+      const data=await res.json();
+      renderResults(data);saveToHistory(data,file.name);
+      setStatus("ready","Done — "+data.findings.length+" finding(s) · "+data.mode);
+    }catch(err){showError(err.message);setStatus("error","Analysis failed")}
+    finally{loading=false;analyzeBtn.disabled=false;analyzeBtn.innerHTML="▶ Analyze with Gemini Vision"}
+  });
+
+  function renderResults(data){
+    placeholder.style.display="none";resultsMeta.style.display="flex";
+    summaryText.textContent="// "+data.summary;
+    badgeRow.innerHTML="";
+    const counts={};
+    data.findings.forEach(f=>{counts[f.severity]=(counts[f.severity]||0)+1});
+    ["CRITICAL","HIGH","MEDIUM","LOW","PERF","SUGGESTION"].forEach(s=>{
+      if(!counts[s])return;
+      const b=document.createElement("span");b.className="count-badge "+s;
+      b.textContent=s+" ×"+counts[s];badgeRow.appendChild(b);
+    });
+    if(data.generated_code){
+      codeBlock.textContent=data.generated_code;codeSection.style.display="flex";
+    }else{
+      splitView.style.display="flex";findingsList.innerHTML="";
+      data.findings.forEach((f,i)=>{
+        const d=document.createElement("div");
+        d.className="finding "+f.severity;d.style.animationDelay=(i*50)+"ms";
+        d.innerHTML=`<div class="finding-top"><span class="sev-badge ${f.severity}">${f.severity}</span><span class="finding-title">${esc(f.title)}</span></div><p class="finding-exp">${esc(f.explanation)}</p>${f.recommendation?`<div class="finding-rec">${esc(f.recommendation)}</div>`:""}`;
+        findingsList.appendChild(d);
+      });
+      if(!data.findings.length)findingsList.innerHTML=`<div style="color:var(--suggestion);font-family:var(--mono);font-size:13px;padding:20px">✓ No issues found — looks clean!</div>`;
+    }
+  }
+
+  function saveToHistory(data,filename){
+    try{
+      const h=JSON.parse(localStorage.getItem("vc_history")||"[]");
+      h.unshift({id:Date.now(),filename,mode:data.mode,summary:data.summary,
+        findings:data.findings.length,
+        critical:data.findings.filter(f=>f.severity==="CRITICAL").length,
+        high:data.findings.filter(f=>f.severity==="HIGH").length,
+        timestamp:new Date().toISOString(),findings_data:data.findings.slice(0,10)});
+      localStorage.setItem("vc_history",JSON.stringify(h.slice(0,50)));
+    }catch(e){}
+  }
+
+  copyBtn.addEventListener("click",()=>{
+    navigator.clipboard.writeText(codeBlock.textContent).then(()=>{
+      copyBtn.textContent="Copied!";setTimeout(()=>{copyBtn.textContent="Copy code"},2000);
+    });
+  });
+
+  function clearResults(){findingsList.innerHTML="";badgeRow.innerHTML="";codeSection.style.display="none";splitView.style.display="none";resultsMeta.style.display="none";placeholder.style.display="flex"}
+  function clearError(){errorBox.style.display="none";errorBox.textContent=""}
+  function showError(msg){errorBox.textContent="⚠ "+msg;errorBox.style.display="block"}
+  function setStatus(state,text){dot.className="dot "+state;statusText.textContent=text}
+  function esc(s){const d=document.createElement("div");d.textContent=s??"";return d.innerHTML}
+</script>
+</body>
+</html>
