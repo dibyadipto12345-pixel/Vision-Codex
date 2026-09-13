@@ -1760,10 +1760,9 @@
   </div>
 </footer>
 
-<script src="config.js"></script>
 <script>
   // Live visual analyzer
-  const ANALYZER_API_BASE = window.VISION_CODEX_API || window.VISION_CODEX_API_BASE || "http://localhost:8080";
+  const ANALYZER_API_BASE = window.VISION_CODEX_API_BASE || "http://localhost:8080";
   const analyzerDropzone = document.getElementById("analyzerDropzone");
   const analyzerFileInput = document.getElementById("analyzerFileInput");
   const analyzerPreview = document.getElementById("analyzerPreview");

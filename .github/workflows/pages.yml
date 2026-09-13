@@ -27,18 +27,6 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Inject Backend API URL
-        run: |
-          if [ -n "${{ vars.BACKEND_URL }}" ]; then
-            echo "Configuring Frontend/config.js with BACKEND_URL: ${{ vars.BACKEND_URL }}"
-            cat <<EOF > Frontend/config.js
-window.VISION_CODEX_API = "${{ vars.BACKEND_URL }}";
-window.VISION_CODEX_API_BASE = "${{ vars.BACKEND_URL }}";
-EOF
-          else
-            echo "No BACKEND_URL repository variable set; keeping default config.js"
-          fi
-
       - name: Upload frontend artifact
         uses: actions/upload-pages-artifact@v3
         with:

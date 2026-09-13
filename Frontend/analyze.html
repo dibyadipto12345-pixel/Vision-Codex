@@ -179,9 +179,8 @@ pre.code-block{background:var(--surface);border:1px solid var(--border);border-r
   </div>
 </main>
 
-<script src="config.js"></script>
 <script>
-  const API_BASE = window.VISION_CODEX_API || window.VISION_CODEX_API_BASE || "http://localhost:8080";
+  const API_BASE = window.VISION_CODEX_API || "http://localhost:8080";
   let file=null,mode="security",loading=false;
   const $=id=>document.getElementById(id);
   const dropzone=$("dropzone"),fileInput=$("fileInput"),dzContent=$("dzContent"),
